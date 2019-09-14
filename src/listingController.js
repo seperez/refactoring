@@ -16,24 +16,6 @@ const {
   send404IfListingsNotFound 
 } =  listingResponses;
 
-const selectStepsQuery = () => {
-  const select = `
-      SELECT
-        "Step"."id",
-        "Step"."name",
-        "Step"."step",
-        'FLOW' as "type",
-        "Flow"."id" as "flowId",
-        "Flow"."name" as "flowName"
-      FROM
-        steps as "Step"
-        LEFT OUTER JOIN flows as "Flow" ON "Flow"."id" = "Step"."flow_id"
-      WHERE
-        "Step".listing_id = ?
-  `
-  return select
-}
-
 const updateRemainingSteps = () => {
   StepModelWrapper.multiUpdate(changes)
   .then(() => {
