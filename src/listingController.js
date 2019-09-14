@@ -51,7 +51,6 @@ module.exports = {
             deleted = deleted.filter( listingFlow => listingFlow.id !== clientSteps[i].id)
           }
           deleted = deleted.map(d => d.id)
-          console.log("deleted", deleted)
           // first create the new steps
           
           const stepList = new StepList();
