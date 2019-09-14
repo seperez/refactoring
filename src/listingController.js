@@ -1,10 +1,5 @@
-const Listing  = require('../../db/models').Listing;
 const StepModel  = require('../../db/models').Step;
 const models  = require('../../db/models');
-const request = require('request')
-const config   = require('../config/');
-const utils = require('../../emi/utils')
-const constants   = require('../config/constants');
 const listingResponses = require('./listingResponses');
 const StepModelWrapper = require('./StepModelWrapper');
 
