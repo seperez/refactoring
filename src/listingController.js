@@ -16,38 +16,6 @@ const {
   send404IfListingsNotFound 
 } =  listingResponses;
 
-const selectQuery = () => {
-  const select =  `
-    SELECT
-      "Subsidiary"."id" as "subsidiaryId",
-      "Country"."name" as "countryName",
-      "Country"."code" as "countryCode",
-      COALESCE("Subsidiary"."name", "Company"."name") as "subsidiaryName",
-      COALESCE("Subsidiary"."logo", "Company"."logo") as "subsidiaryLogo",
-      "Listing"."id",
-      "Listing".company_name as "companyName",
-      "Listing".company_logo as "companyLogo",
-      "Listing"."name",
-      "Listing"."description",
-      "Listing"."criteria",
-      "Listing"."info",
-      "Listing"."state",
-      "Listing"."gs",
-      COALESCE("PlatformListing".platform_listings, 0)::int as "platformListings"
-
-      FROM
-        listings AS "Listing"
-        LEFT OUTER JOIN subsidiaries AS "Subsidiary" ON "Listing".subsidiary_id = "Subsidiary"."id"
-        LEFT OUTER JOIN countries AS "Country" ON "Subsidiary".country_id = "Country"."id"
-        LEFT OUTER JOIN companies AS "Company" ON "Subsidiary".company_id = "Company"."id"
-      LEFT OUTER JOIN (
-        SELECT l.listing_id as "lid", count(*) as platform_listings FROM platform_listings as l
-        WHERE l."state" = 'ACTIVE'
-      GROUP BY lid) AS "PlatformListing" ON "Listing"."id" = "PlatformListing"."lid"
-    `
-  return select
-}
-
 const selectStepsQuery = () => {
   const select = `
       SELECT
@@ -66,46 +34,14 @@ const selectStepsQuery = () => {
   return select
 }
 
-const getListings = () => {
-  const requirements = {type: models.sequelize.QueryTypes.SELECT}
-  let query = ""
-
-  const select = selectQuery()
-
-  const where = `
-  WHERE
-    "Listing"."id" = ?
-  `
-  requirements.replacements = [listing.id];
-  query = select + where
-
-  return models.sequelize.query(query, requirements)
-  .then(sendResponse)
-  .catch((error) => {
-    console.log(error)
-    res.status(400).send(error)
-  });
-};
-
 const updateRemainingSteps = () => {
-  // update the remaining steps
-  models.sequelize.Promise.each(changes, function(val, index) {
-    return StepModel.update(
-      {
-        name: val.name,
-        step: val.step,
-        flowId: val.flowId
-      },{
-        where:{
-          id: val.id
-        }
-      })
+  StepModelWrapper.multiUpdate(changes)
+  .then(() => {
+    ListingModelWrapper.findAll(listingId)
+    .then(sendResponse)
+    .catch(send400GenericError);
   })
-  .then(getListings)
-  .catch((error) => {
-    console.log(error)
-    res.status(400).send(error)
-  });
+  .catch(send400GenericError);
 }
 
 module.exports = {
@@ -162,20 +98,8 @@ module.exports = {
               .then(() => {
                 // update the remaining steps
                 StepModelWrapper.multiUpdate(changes)
-                .then(()=>{
-                  const requirements = {type: models.sequelize.QueryTypes.SELECT}
-                  let query = ""
-
-                  const select = selectQuery()
-
-                  const where = `
-                  WHERE
-                    "Listing"."id" = ?
-                  `
-                  requirements.replacements = [listing.id];
-                  query = select + where
-
-                  return models.sequelize.query(query, requirements)
+                .then(() => {
+                  ListingModelWrapper.findAll(listingId)
                   .then(sendResponse)
                   .catch(send400GenericError);
                 })
