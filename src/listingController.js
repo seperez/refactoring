@@ -1,4 +1,5 @@
 const Listing  = require('../../db/models').Listing;
+const StepModel  = require('../../db/models').Step;
 const models  = require('../../db/models');
 const request = require('request')
 const config   = require('../config/');
@@ -88,7 +89,7 @@ const getListings = () => {
 const updateRemainingSteps = () => {
   // update the remaining steps
   models.sequelize.Promise.each(changes, function(val, index) {
-    return models.Step.update(
+    return StepModel.update(
       {
         name: val.name,
         step: val.step,
@@ -124,7 +125,7 @@ module.exports = {
       .update({ companyName, companyLogo, name, description, info, state, gs, criteria })
       .then((listing) => {
 
-        models.Step.findAll({
+        StepModel.findAll({
           where:{
               listingId: listing.id
           }
@@ -154,10 +155,10 @@ module.exports = {
 
           }
           if (bulkCreate && bulkCreate.length > 0){
-            models.Step.bulkCreate(bulkCreate)
+            StepModel.bulkCreate(bulkCreate)
             .then(() => {
               // second, delete the steps to be deleted
-              models.Step.destroy({
+              StepModel.destroy({
                 where: {
                   id: deleted
                 }
@@ -165,7 +166,7 @@ module.exports = {
               .then(() => {
                 // update the remaining steps
                 models.sequelize.Promise.each(changes, function(val, index) {
-                  return models.Step.update(
+                  return StepModel.update(
                     {
                       name: val.name,
                       step: val.step,
@@ -201,7 +202,7 @@ module.exports = {
             .catch(send400GenericError);
           } else {
             // second, delete the steps to be deleted
-            models.Step.destroy({
+            StepModel.destroy({
               where: {
                 id: deleted
               }
