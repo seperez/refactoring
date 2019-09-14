@@ -27,7 +27,6 @@ const updateRemainingSteps = (changes, listingId) => {
 }
 
 module.exports = {
-
   update(req, res) {
     send404IfUserNotFound();
 
@@ -59,20 +58,12 @@ module.exports = {
           deleted = deleted.map(d => d.id)
           console.log("deleted", deleted)
           // first create the new steps
-          const bulkCreate = []
-          for (let i = 0, len = newSteps.length; i < len; i++) {
-            if (newSteps[i].id < 0){
-              bulkCreate.push({
-                listingId: listing.id,
-                 flowId: newSteps[i].flowId,
-                name: newSteps[i].name,
-                step: newSteps[i].step,
-              })
-            }
+          
+          const stepList = new StepList();
+          stepList.createAndAddStep(listing.id, newSteps);
 
-          }
-          if (bulkCreate && bulkCreate.length > 0){
-            StepModelWrapper.bulkCreate(bulkCreate)
+          if (stepList.hasSteps())
+            StepModelWrapper.bulkCreate(stepList.asJSON())
             .then(() => {
               // second, delete the steps to be deleted
               StepModelWrapper.destroy(deleted)
