@@ -112,13 +112,16 @@ module.exports = {
   update(req, res) {
     send404IfUserNotFound();
 
+    const { listingId } = req.params; 
+    const dataFromRequestBody = req.body;
+
     return  
-    .findById(req.params.listingId)
+    .findById(listingId)
     .then(listing => {
       send404IfListingsNotFound();
       send403Unauthorized();
 
-      const dataToUpdate = Object.assign({}, req.body, listing);
+      const dataToUpdate = Object.assign({}, dataFromRequestBody, listing);
       const { companyName, companyLogo, name, description, info, state, gs, criteria } = dataToUpdate;
 
       return listing
@@ -132,7 +135,7 @@ module.exports = {
         })
         .then((steps) =>{
 
-          const clientSteps = req.body.steps;
+          const clientSteps = dataFromRequestBody.steps;
           let deleted = steps;
           const changes = clientSteps.filter( step => step.id > 0);
           const newSteps = clientSteps.filter( step => step.id < 0);
