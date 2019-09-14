@@ -6,6 +6,7 @@ const config   = require('../config/');
 const utils = require('../../emi/utils')
 const constants   = require('../config/constants');
 const listingResponses = require('./listingResponses');
+const StepModelWrapper = require('./StepModelWrapper');
 
 const { 
   sendResponse, 
@@ -128,11 +129,7 @@ module.exports = {
       .update({ companyName, companyLogo, name, description, info, state, gs, criteria })
       .then((listing) => {
 
-        StepModel.findAll({
-          where:{
-              listingId: listing.id
-          }
-        })
+        StepModelWrapper.findAll(listing.id)
         .then((steps) =>{
 
           const clientSteps = dataFromRequestBody.steps;
@@ -158,28 +155,13 @@ module.exports = {
 
           }
           if (bulkCreate && bulkCreate.length > 0){
-            StepModel.bulkCreate(bulkCreate)
+            StepModelWrapper.bulkCreate(bulkCreate)
             .then(() => {
               // second, delete the steps to be deleted
-              StepModel.destroy({
-                where: {
-                  id: deleted
-                }
-              })
+              StepModelWrapper.destroy(deleted)
               .then(() => {
                 // update the remaining steps
-                models.sequelize.Promise.each(changes, function(val, index) {
-                  return StepModel.update(
-                    {
-                      name: val.name,
-                      step: val.step,
-                      flowId: val.flowId
-                    },{
-                      where:{
-                        id: val.id
-                      }
-                    })
-                })
+                StepModelWrapper.multiUpdate(changes)
                 .then(()=>{
                   const requirements = {type: models.sequelize.QueryTypes.SELECT}
                   let query = ""
