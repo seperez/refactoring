@@ -1,0 +1,22 @@
+{
+  "name": "geo",
+  "version": "1.0.0",
+  "description": "Geo",
+  "scripts": {
+    "test": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha tests/**.spec.js -- --require babel-register --require babel-polyfill",
+    "test:watch": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha tests/**.spec.js -- --require babel-register --require babel-polyfill --watch",
+    "coverage": "npm test && open coverage/lcov-report/index.html"
+  },
+  "author": "perezsebastianm@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-register": "^6.26.0",
+    "chai": "^4.1.2",
+    "geolib": "^3.0.4",
+    "istanbul": "^1.0.0-alpha.2",
+    "mocha": "^4.0.1"
+  }
+}
