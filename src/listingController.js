@@ -176,7 +176,7 @@ module.exports = {
                   query = select + where
 
                   return models.sequelize.query(query, requirements)
-                  .then()
+                  .then(sendResponse)
                   .catch(send400GenericError);
                 })
                 .catch(send400GenericError);
@@ -187,11 +187,7 @@ module.exports = {
             .catch(send400GenericError);
           } else {
             // second, delete the steps to be deleted
-            StepModel.destroy({
-              where: {
-                id: deleted
-              }
-            })
+            StepModelWrapper.destroy(deleted)
             .then(() => { updateRemainingSteps(changes) })
             .catch(send400GenericError);
           }
