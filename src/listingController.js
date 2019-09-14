@@ -55,41 +55,96 @@ const selectStepsQuery = () => {
   return select
 }
 
+const send404IfListingsNotFound = () => {
+  if (!listing) {
+    return res.status(404).send({
+      message: 'Listing Not Found',
+    });
+  }
+};
+
+const send400IfUserNotFound = () => {
+  if (!req.decoded || !req.decoded.user){
+    return res.status(400).send({
+      message: 'User Not Found',
+    });
+  }
+}
+
+const send400GenericError = (error) => {
+  console.log(error)
+  res.status(400).send(error)
+};
+
+const send403Unauthorized = () => {
+  if (listing.subsidiaryId != req.decoded.user.subsidiaryId && !req.decoded.authorities.includes(constants.ROLE_EMPLOYEE) ) {
+    return res.status(403).send({
+      message: 'Listing Not Found',
+    });
+  }
+}
+
+// TODO: recibir res en todos
+const sendResponse = (listings) => res.status(200).send(listings[0]);
+
+const getListings = () => {
+  const requirements = {type: models.sequelize.QueryTypes.SELECT}
+  let query = ""
+
+  const select = selectQuery()
+
+  const where = `
+  WHERE
+    "Listing"."id" = ?
+  `
+  requirements.replacements = [listing.id];
+  query = select + where
+
+  return models.sequelize.query(query, requirements)
+  .then(sendResponse)
+  .catch((error) => {
+    console.log(error)
+    res.status(400).send(error)
+  });
+};
+
+const updateRemainingSteps = () => {
+  // update the remaining steps
+  models.sequelize.Promise.each(changes, function(val, index) {
+    return models.Step.update(
+      {
+        name: val.name,
+        step: val.step,
+        flowId: val.flowId
+      },{
+        where:{
+          id: val.id
+        }
+      })
+  })
+  .then(getListings)
+  .catch((error) => {
+    console.log(error)
+    res.status(400).send(error)
+  });
+}
+
 module.exports = {
 
   update(req, res) {
-    if (!req.decoded || !req.decoded.user){
-      return res.status(400).send({
-        message: 'User Not Found',
-      });
-    }
+    send404IfUserNotFound();
 
-    return Listing
+    return  
     .findById(req.params.listingId)
     .then(listing => {
-      if (!listing) {
-        return res.status(404).send({
-          message: 'Listing Not Found',
-        });
-      }
+      send404IfListingsNotFound();
+      send403Unauthorized();
 
-      if (listing.subsidiaryId != req.decoded.user.subsidiaryId && !req.decoded.authorities.includes(constants.ROLE_EMPLOYEE) ) {
-        return res.status(403).send({
-          message: 'Listing Not Found',
-        });
-      }
+      const dataToUpdate = Object.assign({}, req.body, listing);
+      const { companyName, companyLogo, name, description, info, state, gs, criteria } = dataToUpdate;
 
       return listing
-      .update({
-        companyName: req.body.companyName || listing.companyName,
-        companyLogo: req.body.companyLogo || listing.companyLogo,
-        name: req.body.name || listing.name,
-        description: req.body.description || listing.description,
-        info: req.body.info || listing.info,
-        state: req.body.state || listing.state,
-        gs: req.body.gs || listing.gs,
-        criteria: req.body.criteria || listing.criteria,
-      })
+      .update({ companyName, companyLogo, name, description, info, state, gs, criteria })
       .then((listing) => {
 
         models.Step.findAll({
@@ -114,7 +169,7 @@ module.exports = {
             if (newSteps[i].id < 0){
               bulkCreate.push({
                 listingId: listing.id,
-                flowId: newSteps[i].flowId,
+                 flowId: newSteps[i].flowId,
                 name: newSteps[i].name,
                 step: newSteps[i].step,
               })
@@ -158,27 +213,15 @@ module.exports = {
                   query = select + where
 
                   return models.sequelize.query(query, requirements)
-                  .then((listings) => res.status(200).send(listings[0]))
-                  .catch((error) => {
-                    console.log(error)
-                    res.status(400).send(error)
-                  });
+                  .then()
+                  .catch(send400GenericError);
                 })
-                .catch((error) => {
-                  console.log(error)
-                  res.status(400).send(error)
-                });
+                .catch(send400GenericError);
 
               })
-              .catch((error) => {
-                console.log(error)
-                res.status(400).send(error)
-              });
+              .catch(send400GenericError);
             })
-            .catch((error) => {
-              console.log(error)
-              res.status(400).send(error)
-            });
+            .catch(send400GenericError);
           } else {
             // second, delete the steps to be deleted
             models.Step.destroy({
@@ -186,68 +229,14 @@ module.exports = {
                 id: deleted
               }
             })
-            .then(() => {
-              // update the remaining steps
-              models.sequelize.Promise.each(changes, function(val, index) {
-                return models.Step.update(
-                  {
-                    name: val.name,
-                    step: val.step,
-                    flowId: val.flowId
-                  },{
-                    where:{
-                      id: val.id
-                    }
-                  })
-              })
-              .then(()=>{
-                const requirements = {type: models.sequelize.QueryTypes.SELECT}
-                let query = ""
-
-                const select = selectQuery()
-
-                const where = `
-                WHERE
-                  "Listing"."id" = ?
-                `
-                requirements.replacements = [listing.id];
-                query = select + where
-
-                return models.sequelize.query(query, requirements)
-                .then((listings) => res.status(200).send(listings[0]))
-                .catch((error) => {
-                  console.log(error)
-                  res.status(400).send(error)
-                });
-              })
-              .catch((error) => {
-                console.log(error)
-                res.status(400).send(error)
-              });
-
-            })
-            .catch((error) => {
-              console.log(error)
-              res.status(400).send(error)
-            });
+            .then(() => { updateRemainingSteps(changes) })
+            .catch(send400GenericError);
           }
-
         })
-        .catch((error) => {
-          console.log(error)
-          res.status(400).send(error)
-        });
-
+        .catch(send400GenericError);
       })
-      .catch((error) => {
-        console.log(error);
-        res.status(400).send(error);
-      });
+      .catch(send400GenericError);
     })
-    .catch((error) => {
-      console.log(error);
-      res.status(400).send(error);
-    });
+    .catch(send400GenericError);
   },
-
 };
