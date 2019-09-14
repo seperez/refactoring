@@ -16,7 +16,7 @@ const {
   send404IfListingsNotFound 
 } =  listingResponses;
 
-const updateRemainingSteps = () => {
+const updateRemainingSteps = (changes, listingId) => {
   StepModelWrapper.multiUpdate(changes)
   .then(() => {
     ListingModelWrapper.findAll(listingId)
@@ -49,7 +49,6 @@ module.exports = {
 
         StepModelWrapper.findAll(listing.id)
         .then((steps) =>{
-
           const clientSteps = dataFromRequestBody.steps;
           let deleted = steps;
           const changes = clientSteps.filter( step => step.id > 0);
@@ -77,24 +76,14 @@ module.exports = {
             .then(() => {
               // second, delete the steps to be deleted
               StepModelWrapper.destroy(deleted)
-              .then(() => {
-                // update the remaining steps
-                StepModelWrapper.multiUpdate(changes)
-                .then(() => {
-                  ListingModelWrapper.findAll(listingId)
-                  .then(sendResponse)
-                  .catch(send400GenericError);
-                })
-                .catch(send400GenericError);
-
-              })
+              .then(() => { updateRemainingSteps(changes, listing.id) })
               .catch(send400GenericError);
             })
             .catch(send400GenericError);
           } else {
             // second, delete the steps to be deleted
             StepModelWrapper.destroy(deleted)
-            .then(() => { updateRemainingSteps(changes) })
+            .then(() => { updateRemainingSteps(changes, listing.id) })
             .catch(send400GenericError);
           }
         })
