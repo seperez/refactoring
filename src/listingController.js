@@ -11,19 +11,25 @@ const {
   send404IfListingsNotFound 
 } =  listingResponses;
 
-const updateRemainingSteps = (changes, listingId) => {
+const updateRemainingSteps = (changes, listingId, listings, res) => {
   StepModelWrapper.multiUpdate(changes)
   .then(() => {
     ListingModelWrapper.findAll(listingId)
-    .then(sendResponse)
-    .catch(send400GenericError);
+    .then(() => { sendResponse(listings, res) })
+    .catch((error) => { send400GenericError(error, res) });
   })
-  .catch(send400GenericError);
-}
+  .catch((error) => { send400GenericError(error, res) });
+};
+
+const destoryStep = (deleted, changes, listingId, listings, res) {
+  StepModelWrapper.destroy(deleted)
+  .then(() => { updateRemainingSteps(changes, listingId, listings, res) })
+  .catch((error) => { send400GenericError(error, res) });
+};
+
 
 module.exports = {
   update(req, res) {
-    send404IfUserNotFound();
 
     const { listingId } = req.params; 
     const dataFromRequestBody = req.body;
@@ -31,8 +37,8 @@ module.exports = {
     return  
     .findById(listingId)
     .then(listing => {
-      send404IfListingsNotFound();
-      send403Unauthorized();
+      send404IfListingsNotFound(listing, res);
+      send403Unauthorized(listing, req, res);
 
       const dataToUpdate = Object.assign({}, dataFromRequestBody, listing);
       const { companyName, companyLogo, name, description, info, state, gs, criteria } = dataToUpdate;
@@ -51,31 +57,25 @@ module.exports = {
             deleted = deleted.filter( listingFlow => listingFlow.id !== clientSteps[i].id)
           }
           deleted = deleted.map(d => d.id)
-          // first create the new steps
           
+          // first create the new steps
           const stepList = new StepList();
-          stepList.createAndAddStep(listing.id, newSteps);
+          stepList.createAndAddSteps(listing.id, newSteps);
 
           if (stepList.hasSteps())
             StepModelWrapper.bulkCreate(stepList.asJSON())
             .then(() => {
-              // second, delete the steps to be deleted
-              StepModelWrapper.destroy(deleted)
-              .then(() => { updateRemainingSteps(changes, listing.id) })
-              .catch(send400GenericError);
+              destoryStep(deleted, changes, listing.id, listings, res);
             })
-            .catch(send400GenericError);
+            .catch((error) => { send400GenericError(error, res) });
           } else {
-            // second, delete the steps to be deleted
-            StepModelWrapper.destroy(deleted)
-            .then(() => { updateRemainingSteps(changes, listing.id) })
-            .catch(send400GenericError);
+            destoryStep(deleted, changes, listing.id, listings, res)
           }
         })
-        .catch(send400GenericError);
+        .catch((error) => { send400GenericError(error, res) });
       })
-      .catch(send400GenericError);
+      .catch((error) => { send400GenericError(error, res) });
     })
-    .catch(send400GenericError);
+    .catch((error) => { send400GenericError(error, res) });
   },
 };

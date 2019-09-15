@@ -5,7 +5,7 @@ class StepList {
     this.steps = [];
   }
 
-  createAndAddStep(listingId, newSteps) {
+  createAndAddSteps(listingId, newSteps) {
     for (let i = 0, len = newSteps.length; i < len; i++) {
       if (newSteps[i].id < 0) {
         const step = new Step(listingId, newSteps[i].flowId, newSteps[i].name, newSteps[i].step);

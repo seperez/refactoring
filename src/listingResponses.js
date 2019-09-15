@@ -1,12 +1,12 @@
-// TODO: recibir res en todos
-const sendResponse = (listings) => res.status(200).send(listings[0]);
+const constants   = require('../config/constants');
 
-const send400GenericError = (error) => {
-  console.log(error)
+const sendResponse = (listings, res) => res.status(200).send(listings[0]);
+
+const send400GenericError = (error, res) => {
   res.status(400).send(error)
 };
 
-const send403Unauthorized = () => {
+const send403Unauthorized = (listing, req, res) => {
   if (listing.subsidiaryId != req.decoded.user.subsidiaryId && !req.decoded.authorities.includes(constants.ROLE_EMPLOYEE) ) {
     return res.status(403).send({
       message: 'Listing Not Found',
@@ -14,7 +14,7 @@ const send403Unauthorized = () => {
   }
 }
 
-const send400IfUserNotFound = () => {
+const send400IfUserNotFound = (req, res) => {
   if (!req.decoded || !req.decoded.user){
     return res.status(400).send({
       message: 'User Not Found',
@@ -22,7 +22,7 @@ const send400IfUserNotFound = () => {
   }
 }
 
-const send404IfListingsNotFound = () => {
+const send404IfListingsNotFound = (listing) => {
   if (!listing) {
     return res.status(404).send({
       message: 'Listing Not Found',
