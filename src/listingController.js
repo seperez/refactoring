@@ -27,10 +27,10 @@ const destoryStep = (deleted, changes, listingId, listings, res) {
   .catch((error) => { send400GenericError(error, res) });
 };
 
-
 module.exports = {
   update(req, res) {
-
+    send400IfUserNotFound(req, res);
+    
     const { listingId } = req.params; 
     const dataFromRequestBody = req.body;
 
